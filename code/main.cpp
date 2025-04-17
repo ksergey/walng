@@ -6,6 +6,7 @@
 
 #include <cxxopts.hpp>
 
+#include "Template.h"
 #include "Theme.h"
 
 int main(int argc, char* argv[]) {
@@ -15,6 +16,7 @@ int main(int argc, char* argv[]) {
     // clang-format off
     options.add_options()
       ("theme", "path to theme file", cxxopts::value<std::string>())
+      ("template", "path to template file", cxxopts::value<std::string>())
       ("help", "print help and exit")
     ;
     // clang-format on
@@ -30,9 +32,15 @@ int main(int argc, char* argv[]) {
     }
     std::filesystem::path const themePath = result["theme"].as<std::string>();
 
-    auto theme = walng::Theme::loadFromYAMLFile(themePath);
+    if (result.count("template") == 0) {
+      throw std::runtime_error("argument '--template' is required");
+    }
+    std::filesystem::path const templatePath = result["template"].as<std::string>();
 
+    auto theme = walng::Theme::loadFromYAMLFile(themePath);
     std::print("json:\n{}\n", theme.dump(2));
+
+    walng::Template::render(theme, templatePath);
 
   } catch (std::exception const& e) {
     std::print(stderr, "Error: {}\n", e.what());

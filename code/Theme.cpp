@@ -54,6 +54,7 @@ inja::json Theme::loadFromYAMLFile(std::filesystem::path const& path) {
 
   auto const paletteColors = getPaletteColorsCount(getStrOrThrow(rootNode, "system"sv));
   auto const paletteNode = rootNode["palette"];
+  auto palette = inja::json::object();
 
   // copy baseXX
   for (std::size_t colorNo = 0; colorNo < paletteColors; ++colorNo) {
@@ -63,7 +64,10 @@ inja::json Theme::loadFromYAMLFile(std::filesystem::path const& path) {
       throw std::runtime_error(std::format("invalid color hex-value ('{}')", colorHex));
     }
     result[colorName] = colorHex;
+    palette[colorName] = colorHex;
   }
+
+  result["palette"] = palette;
 
   return result;
 }

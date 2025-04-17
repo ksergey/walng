@@ -18,3 +18,4 @@ file(GLOB_RECURSE Headers "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 target_sources(${TargetName} PUBLIC ${Headers} ${Sources})
 
 file(COPY gruvbox-dark.yaml DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY rofi-colors.rasi DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

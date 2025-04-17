@@ -1,0 +1,11 @@
+* {
+  background: {{ palette.base00 }};
+  background-alt: {{ palette.base01 }};
+  foreground: {{ palette.base06 }};
+  urgent: {{ palette.base0E }};
+}
+
+/* author = {{ author }} */
+{% for name, value in palette -%}
+/* {{ name }} = {{ hex(value) }} */
+{%- endfor %}

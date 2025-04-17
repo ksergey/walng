@@ -4,7 +4,6 @@
 #pragma once
 
 #include <filesystem>
-#include <string>
 
 #include <inja/inja.hpp>
 
