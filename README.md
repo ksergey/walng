@@ -1,6 +1,12 @@
+[<img src="https://img.shields.io/github/license/ksergey/walng">](https://opensource.org/license/mit)
+[<img src="https://img.shields.io/github/actions/workflow/status/ksergey/walng/build-and-test.yml?logo=linux">](https://github.com/ksergey/walng/actions/workflows/build-and-test.yml)
+[<img src="https://img.shields.io/badge/language-C%2B%2B23-red">](https://en.wikipedia.org/wiki/C%2B%2B23)
+
 # walng
 
 Template colorscheme generator for base16 framework (https://github.com/chriskempson/base16)
+
+I didn’t find a utility that suited my needs, so I wrote my own. Sorry for that.
 
 # Building
 
