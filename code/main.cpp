@@ -310,6 +310,15 @@ int main(int argc, char* argv[]) {
           static_cast<std::uint8_t>(alphaFloat * 255));
     });
 
+    env.add_callback("hypr", 1, [](inja::Arguments const& args) {
+      auto const colorStr = args.at(0)->get<std::string>();
+      auto const colorRGBA = walng::parseRGBAFromHexStr(colorStr);
+      if (!colorRGBA) {
+        throw std::runtime_error(std::format("'{}' not valid color", colorStr));
+      }
+      return std::format("0x{:2x}{:2x}{:2x}{:2x}", colorRGBA->a, colorRGBA->r, colorRGBA->g, colorRGBA->b);
+    });
+
     for (auto const& item : config.items) {
       try {
         env.write(item.templatePath, themeData, item.targetPath);
