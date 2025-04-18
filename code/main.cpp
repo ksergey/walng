@@ -101,14 +101,6 @@ struct RGBA {
   std::uint8_t a; ///< Alpha [0..255]
 };
 
-/// parse RGB color from string
-/// i.e. rgb(r, g, b)
-[[nodiscard]] std::optional<RGB> parseRGBFromStr(char const* str) noexcept {
-  (void)str;
-  // not implemented
-  return std::nullopt;
-}
-
 /// parse RGB color from hex string
 [[nodiscard]] std::optional<RGB> parseRGBFromHexStr(char const* str) noexcept {
   char* endptr;
@@ -310,13 +302,13 @@ int main(int argc, char* argv[]) {
           static_cast<std::uint8_t>(alphaFloat * 255));
     });
 
-    env.add_callback("hypr", 1, [](inja::Arguments const& args) {
+    env.add_callback("hex_stripped", 1, [](inja::Arguments const& args) {
       auto const colorStr = args.at(0)->get<std::string>();
       auto const colorRGBA = walng::parseRGBAFromHexStr(colorStr);
       if (!colorRGBA) {
         throw std::runtime_error(std::format("'{}' not valid color", colorStr));
       }
-      return std::format("0x{:2x}{:2x}{:2x}{:2x}", colorRGBA->a, colorRGBA->r, colorRGBA->g, colorRGBA->b);
+      return std::format("{:02x}{:02x}{:02x}", colorRGBA->r, colorRGBA->g, colorRGBA->b);
     });
 
     for (auto const& item : config.items) {
