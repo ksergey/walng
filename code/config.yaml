@@ -1,0 +1,13 @@
+config:
+  shell: "sh -c '{}'"
+
+items:
+  - name: "rofi"
+    template: "~/.config/walng/templates/rofi-colors.rasi"
+    target: "~/.config/rofi/colors.rasi"
+    hook: ""
+
+  - name: "waybar"
+    template: "~/.config/walng/templates/waybar-colors.css"
+    target: "~/.config/waybar/colors.css"
+    hook: "killall -SIGUSR2 waybar"
