@@ -32,6 +32,8 @@ curl -O -L https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/s
 Look up for templating examples in templates folder, they look more-less like this:
 
 ```jinja
+/* name: {{ name }} */
+
 * {
   background: rgba({{ rgb(palette.base00) }}, 0.8);
 
@@ -42,8 +44,38 @@ Look up for templating examples in templates folder, they look more-less like th
 
 ```
 
+The example above for colorscheme `onedark-dark.yaml` will be rendered into:
+
+```css
+/* name: Kanagawa */
+
+* {
+  background: rgba(31, 31, 40, 0.8);
+
+  base00: #1F1F28;
+  base01: #16161D;
+  base02: #223249;
+  base03: #54546D;
+  base04: #727169;
+  base05: #DCD7BA;
+  base06: #C8C093;
+  base07: #717C7C;
+  base08: #C34043;
+  base09: #FFA066;
+  base0A: #C0A36E;
+  base0B: #76946A;
+  base0C: #6A9589;
+  base0D: #7E9CD8;
+  base0E: #957FB8;
+  base0F: #D27E99;
+}
+
+```
+
 Expression `{{ palette.colorNN }}` formats color as `#RRGGBB` (hex-digits with prefix `#`)
+
 Expression `{{ rgb(palette.colorNN) }}` formats color as `R, G, B` (digits)
+
 Expression `{{ hex_stripped(palette.colorNN) }}` formats color as `RRGGBB` (hex-digits)
 
 # Configuration
