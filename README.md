@@ -33,7 +33,7 @@ Look up for templating examples in templates folder, they look more-less like th
 
 ```jinja
 * {
-  background: {{ rgba(alpha(palette.base00, 0.8)) }};
+  background: rgba({{ rgb(palette.base00) }}, 0.8);
 
 {% for name, color in palette %}
   {{ name }}: {{ color }};
@@ -41,6 +41,10 @@ Look up for templating examples in templates folder, they look more-less like th
 }
 
 ```
+
+Expression `{{ palette.colorNN }}` formats color as `#RRGGBB` (hex-digits with prefix `#`)
+Expression `{{ rgb(palette.colorNN) }}` formats color as `R, G, B` (digits)
+Expression `{{ hex_stripped(palette.colorNN) }}` formats color as `RRGGBB` (hex-digits)
 
 # Configuration
 
