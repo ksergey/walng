@@ -72,11 +72,9 @@ The example above for colorscheme `onedark-dark.yaml` will be rendered into:
 
 ```
 
-Expression `{{ palette.colorNN }}` formats color as `#RRGGBB` (hex-digits with prefix `#`)
-
 Expression `{{ rgb(palette.colorNN) }}` formats color as `R, G, B` (digits)
 
-Expression `{{ hex_stripped(palette.colorNN) }}` formats color as `RRGGBB` (hex-digits)
+Expression `{{ hex(palette.colorNN) }}` formats color as `RRGGBB` (hex-digits)
 
 # Configuration
 

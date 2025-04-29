@@ -29,13 +29,13 @@ void configure(inja::Environment& env) {
     return *color;
   };
 
-  env.add_callback("hex_stripped", 1, [&](inja::Arguments const& args) {
-    auto const color = parseColorOrThrow(args.at(0)->get<std::string>()).as<RGB>();
+  env.add_callback("hex", 1, [&](inja::Arguments const& args) {
+    auto const color = parseColorOrThrow(args.at(0)->get<std::string>()).asRGB();
     return std::format("{:02x}{:02x}{:02x}", color.r, color.g, color.b);
   });
 
   env.add_callback("rgb", 1, [&](inja::Arguments const& args) {
-    auto const color = parseColorOrThrow(args.at(0)->get<std::string>()).as<RGB>();
+    auto const color = parseColorOrThrow(args.at(0)->get<std::string>()).asRGB();
     return std::format("{}, {}, {}", color.r, color.g, color.b);
   });
 };

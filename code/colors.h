@@ -17,38 +17,18 @@ struct RGB {
   std::uint8_t b; ///< Blue [0..255]
 };
 
-/// Color in RGBA
-struct RGBA {
-  std::uint8_t a; ///< Alpha [0..255]
-  std::uint8_t r; ///< Red [0..255]
-  std::uint8_t g; ///< Green [0..255]
-  std::uint8_t b; ///< Blue [0..255]
-};
-
 struct Color {
-  /// 0xAARRGGBB
+  /// 0xRRGGBB
   std::uint32_t value = 0;
 
-  template <typename T>
-  constexpr decltype(auto) as() const noexcept {
-    if constexpr (std::is_same_v<T, RGB>) {
-      // clang-format off
-      return RGB{
-          static_cast<std::uint8_t>((value & 0x00FF0000) >> 16),
-          static_cast<std::uint8_t>((value & 0x0000FF00) >> 8),
-          static_cast<std::uint8_t>((value & 0x000000FF))
-      };
-      // clang-format on
-    } else if constexpr (std::is_same_v<T, RGB>) {
-      // clang-format off
-      return RGBA{
-          static_cast<std::uint8_t>((value & 0xAA000000) >> 24),
-          static_cast<std::uint8_t>((value & 0x00FF0000) >> 16),
-          static_cast<std::uint8_t>((value & 0x0000FF00) >> 8),
-          static_cast<std::uint8_t>((value & 0x000000FF))
-      };
-      // clang-format on
-    }
+  constexpr RGB asRGB() const noexcept {
+    // clang-format off
+    return RGB{
+      static_cast<std::uint8_t>((value & 0x00FF0000) >> 16),
+      static_cast<std::uint8_t>((value & 0x0000FF00) >> 8),
+      static_cast<std::uint8_t>((value & 0x000000FF))
+    };
+    // clang-format on
   }
 
   constexpr auto operator<=>(Color const&) const = default;
