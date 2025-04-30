@@ -4,7 +4,7 @@
 
 # walng
 
-Template colorscheme generator for base16 framework (https://github.com/chriskempson/base16)
+Color template generator for base16 framework (https://github.com/chriskempson/base16)
 
 I didn’t find a utility that suited my needs, so I wrote my own. Sorry for that.
 

@@ -22,4 +22,7 @@ std::filesystem::path const& configPathBase();
 /// Expand @c ~ to $HOME
 void expandTilda(std::filesystem::path& path);
 
+/// Make temporary filename
+std::filesystem::path makeTemp();
+
 } // namespace walng

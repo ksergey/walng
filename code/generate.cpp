@@ -57,7 +57,7 @@ void generate(std::filesystem::path const& configPath, std::filesystem::path con
   inja::Environment env;
   configure(env);
 
-  std::filesystem::path const tempPath = std::filesystem::temp_directory_path() / std::tmpnam(nullptr);
+  std::filesystem::path const tempPath = makeTemp();
 
   for (auto const& item : config.items) {
     try {

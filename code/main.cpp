@@ -9,22 +9,30 @@
 
 #include "generate.h"
 #include "utils.h"
+#include "version.h"
 
 int main(int argc, char* argv[]) {
   try {
-    cxxopts::Options options("walng", "template coloscheme generator");
+    cxxopts::Options options("walng", "color template generator for base16 framework\n");
 
     // clang-format off
     options.add_options()
-      ("theme", "path to theme file", cxxopts::value<std::string>(), "PATH")
       ("config", "path to config file", cxxopts::value<std::string>(), "PATH")
-      ("help", "print help and exit")
+      ("theme", "path to theme file", cxxopts::value<std::string>(), "PATH")
+      ("help", "prints the help and exit")
+      ("version", "prints the version and exit")
     ;
     // clang-format on
 
     auto const result = options.parse(argc, argv);
+
     if (result.count("help")) {
       std::print(stdout, "{}\n", options.help());
+      return EXIT_FAILURE;
+    }
+
+    if (result.count("version")) {
+      std::print(stdout, "walng {}\n", walng::version);
       return EXIT_FAILURE;
     }
 
