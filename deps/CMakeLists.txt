@@ -7,7 +7,7 @@ FetchContent_Declare(cxxopts
 FetchContent_MakeAvailable(cxxopts)
 
 FetchContent_Declare(yaml-cpp
-  URL https://github.com/jbeder/yaml-cpp/archive/refs/tags/0.8.0.tar.gz
+  URL https://github.com/jbeder/yaml-cpp/archive/2f86d13775d119edbb69af52e5f566fd65c6953b.zip
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(yaml-cpp)
