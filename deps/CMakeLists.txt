@@ -12,8 +12,13 @@ FetchContent_Declare(yaml-cpp
 )
 FetchContent_MakeAvailable(yaml-cpp)
 
-FetchContent_Declare(inja
-  URL https://github.com/pantor/inja/archive/refs/tags/v3.4.0.tar.gz
+FetchContent_Declare(json
+  URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
-FetchContent_MakeAvailable(inja)
+FetchContent_MakeAvailable(json)
+
+add_library(inja INTERFACE)
+target_include_directories(inja INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(inja INTERFACE nlohmann_json::nlohmann_json)
+add_library(3rdparty::inja ALIAS inja)
