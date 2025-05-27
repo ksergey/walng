@@ -11,7 +11,12 @@
 #include "utils.h"
 #include "version.h"
 
+#include "curl_test.h"
+
 int main(int argc, char* argv[]) {
+  curl_test();
+  return 0;
+
   try {
     cxxopts::Options options("walng", "color template generator for base16 framework\n");
 

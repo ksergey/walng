@@ -22,3 +22,11 @@ add_library(inja INTERFACE)
 target_include_directories(inja INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(inja INTERFACE nlohmann_json::nlohmann_json)
 add_library(3rdparty::inja ALIAS inja)
+
+set(BUILD_SHARED_LIBS OFF)
+set(BUILD_STATIC_LIBS ON)
+FetchContent_Declare(curl
+  URL https://github.com/curl/curl/releases/download/curl-8_13_0/curl-8.13.0.tar.bz2
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
+)
+FetchContent_MakeAvailable(curl)
