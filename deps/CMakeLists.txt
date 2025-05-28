@@ -42,7 +42,7 @@ set(ENABLE_UNIX_SOCKETS OFF)
 set(BUILD_TESTING OFF)
 set(BUILD_EXAMPLES OFF)
 FetchContent_Declare(curl
-  URL https://github.com/curl/curl/releases/download/curl-8_13_0/curl-8.13.0.tar.bz2
+  URL https://github.com/curl/curl/releases/download/curl-8_14_0/curl-8.14.0.tar.bz2
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(curl)

@@ -14,6 +14,9 @@
 
 #include <curl/curl.h>
 
+#include "FetchWorker.h"
+#include "curl.h"
+
 namespace curl {
 namespace detail {
 
@@ -187,6 +190,9 @@ struct Downloader {
 };
 
 void curl_test() {
+
+  walng::FetchWorker worker;
+
   try {
     auto request = curl::Request();
     // request.setURL("https://api.github.com/repos/tinted-theming/schemes/contents/base16");
