@@ -7,35 +7,78 @@
 
 #include <curl/curl.h>
 
-namespace walng::curl {
+namespace walng {
 
-/// Wrapper for curl multi handle
-class MultiHandle {
+/// Wrapper for curl easy handle
+class CurlEasy {
 private:
-  CURLM* handle_ = nullptr;
+  CURL* handle_ = nullptr;
 
 public:
-  MultiHandle(MultiHandle const&) = delete;
-  MultiHandle& operator=(MultiHandle const&) = delete;
+  CurlEasy(CurlEasy const&) = delete;
+  CurlEasy& operator=(CurlEasy const&) = delete;
 
-  MultiHandle(MultiHandle&& other) noexcept : handle_(std::exchange(other.handle_, nullptr)) {}
+  CurlEasy(CurlEasy&& other) noexcept : handle_(std::exchange(other.handle_, nullptr)) {}
 
-  MultiHandle& operator=(MultiHandle&& other) noexcept {
+  CurlEasy& operator=(CurlEasy&& other) noexcept {
     if (this != &other) {
-      this->~MultiHandle();
-      new (this) MultiHandle(std::move(other));
+      this->~CurlEasy();
+      new (this) CurlEasy(std::move(other));
     }
     return *this;
   }
 
-  MultiHandle() {
+  CurlEasy() {
+    handle_ = ::curl_easy_init();
+    if (handle_ == nullptr) {
+      throw std::runtime_error("failed to init curl multi handle");
+    }
+  }
+
+  ~CurlEasy() noexcept {
+    if (handle_) {
+      ::curl_easy_cleanup(handle_);
+    }
+  }
+
+  /// Return true on handle initialized
+  [[nodiscard]] explicit operator bool() const noexcept {
+    return handle_ != nullptr;
+  }
+
+  /// Return native handle
+  [[nodiscard]] operator CURL*() const noexcept {
+    return handle_;
+  }
+};
+
+/// Wrapper for curl multi handle
+class CurlMulti {
+private:
+  CURLM* handle_ = nullptr;
+
+public:
+  CurlMulti(CurlMulti const&) = delete;
+  CurlMulti& operator=(CurlMulti const&) = delete;
+
+  CurlMulti(CurlMulti&& other) noexcept : handle_(std::exchange(other.handle_, nullptr)) {}
+
+  CurlMulti& operator=(CurlMulti&& other) noexcept {
+    if (this != &other) {
+      this->~CurlMulti();
+      new (this) CurlMulti(std::move(other));
+    }
+    return *this;
+  }
+
+  CurlMulti() {
     handle_ = ::curl_multi_init();
     if (handle_ == nullptr) {
       throw std::runtime_error("failed to init curl multi handle");
     }
   }
 
-  ~MultiHandle() noexcept {
+  ~CurlMulti() noexcept {
     if (handle_) {
       ::curl_multi_cleanup(handle_);
     }
@@ -52,4 +95,4 @@ public:
   }
 };
 
-} // namespace walng::curl
+} // namespace walng
