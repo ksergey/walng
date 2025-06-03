@@ -9,7 +9,7 @@ namespace walng {
 
 class NetThread::RequestState {
 private:
-  CurlEasy easyHandle_;
+  detail::CurlEasy easyHandle_;
   CancellationToken cancellationToken_;
   ResponseHandler* responseHandler_ = nullptr;
   int completeCode_ = 0;
@@ -26,7 +26,7 @@ public:
     ::curl_easy_setopt(easyHandle_, CURLOPT_WRITEFUNCTION, &writeCallback);
   }
 
-  [[nodiscard]] CurlEasy const& handle() const noexcept {
+  [[nodiscard]] detail::CurlEasy const& handle() const noexcept {
     return easyHandle_;
   }
 

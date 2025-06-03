@@ -1,6 +1,7 @@
 // Copyright (c) Sergey Kovalevich <inndie@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0
 
+#include <atomic>
 #include <print>
 #include <string>
 
@@ -8,32 +9,42 @@
 
 namespace {
 
-struct Handler final : walng::ResponseHandler {
-  std::string content;
-  bool done = false;
+class Handler final : public walng::ResponseHandler {
+private:
+  std::string content_;
+  std::atomic<bool> done_ = false;
 
+public:
   void processWriteChunk(std::span<char const> chunk) override {
-    content.append(chunk.data(), chunk.size());
+    content_.append(chunk.data(), chunk.size());
   }
 
   void processComplete(int code, std::string_view text) override {
     std::print(stdout, "code: {}, text: \"{}\"\n", code, text);
-    std::print(stdout, "{}\n", content);
-    done = true;
+    std::print(stdout, "{}\n", content_);
+    done_ = true;
   }
-} handler;
+
+  bool done() const noexcept {
+    return done_.load(std::memory_order_relaxed);
+  }
+};
 
 } // namespace
 
 void curl_test() {
   walng::NetThread netThread;
 
-  netThread.enqueue({"wttr.in/Moscow"}, {}, &handler);
+  Handler moscow;
+  netThread.enqueue({"wttr.in/Moscow"}, {}, &moscow);
+
+  Handler brest;
+  netThread.enqueue({"wttr.in/Brest"}, {}, &brest);
 
   while (true) {
     netThread.complete();
 
-    if (handler.done) {
+    if (moscow.done() && brest.done()) {
       break;
     } else {
       std::this_thread::sleep_for(std::chrono::milliseconds(5));
