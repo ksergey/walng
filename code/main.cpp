@@ -11,11 +11,28 @@
 #include "utils.h"
 #include "version.h"
 
-#include "curl_test.h"
+// #include "curl_test.h"
+#include "curl.h"
+
+int curl_test_xxx() {
+  using namespace walng;
+
+  auto const result = Executor::perform(Request("wttr.in/Moscow"));
+  if (!result) {
+    std::print(stderr, "can't perform query ({})", result.error().message());
+    return EXIT_FAILURE;
+  }
+
+  auto const& response = result.value();
+  // std::print(stdout, "effective url: \"{}\"\n", response.effectiveURL());
+  // std::print(stdout, "total time: {}\n", std::chrono::duration_cast<std::chrono::milliseconds>(response.totalTime()));
+  std::print(stdout, "response:\n{}\n", response.body());
+
+  return EXIT_SUCCESS;
+}
 
 int main(int argc, char* argv[]) {
-  curl_test();
-  return 0;
+  return curl_test_xxx();
 
   try {
     cxxopts::Options options("walng", "color template generator for base16 framework\n");

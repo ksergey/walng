@@ -3,7 +3,11 @@
 
 #pragma once
 
+#include <chrono>
+#include <concepts>
 #include <expected>
+#include <optional>
+#include <span>
 #include <system_error>
 #include <utility>
 
@@ -80,6 +84,13 @@ public:
   }
 };
 
+template <typename T>
+T getInfo(Easy const& handle, CURLINFO info) noexcept {
+  T result;
+  ::curl_easy_getinfo(handle, info, &result);
+  return result;
+}
+
 class Multi {
 private:
   CURLM* handle_ = nullptr;
@@ -120,18 +131,78 @@ public:
 
 class Response {
 private:
+  curl::Easy handle_;
+  std::string body_;
+
 public:
   Response(Response const&) = delete;
   Response& operator=(Response const&) = delete;
+  Response(Response&&) = default;
+  Response& operator=(Response&&) = default;
   Response() = default;
+
+  Response(curl::Easy handle, std::string body) noexcept : handle_(std::move(handle)), body_(std::move(body)) {}
+
+  [[nodiscard]] std::string const& body() const noexcept {
+    return body_;
+  }
+
+  [[nodiscard]] std::chrono::microseconds totalTime() const noexcept {
+    return std::chrono::microseconds(curl::getInfo<curl_off_t>(handle_, CURLINFO_TOTAL_TIME_T));
+  }
+
+  [[nodiscard]] std::string effectiveURL() const noexcept {
+    return std::string(curl::getInfo<char*>(handle_, CURLINFO_EFFECTIVE_URL));
+  }
 };
 
 class Request {
 private:
+  curl::Easy handle_;
+  std::string body_;
+
 public:
   Request(Request const&) = delete;
   Request& operator=(Request const&) = delete;
-  Request() = default;
+
+  Request(Request&& other) noexcept : handle_(std::move(other.handle_)), body_(std::move(other.body_)) {
+    ::curl_easy_setopt(handle_, CURLOPT_WRITEDATA, this);
+  }
+
+  Request& operator=(Request&& other) noexcept {
+    if (this != &other) {
+      this->~Request();
+      new (this) Request(std::move(other));
+    }
+    return *this;
+  }
+
+  Request(std::string const& url, std::chrono::milliseconds timeout = std::chrono::seconds(5)) {
+    ::curl_easy_setopt(handle_, CURLOPT_URL, url.c_str());
+    ::curl_easy_setopt(handle_, CURLOPT_TIMEOUT, static_cast<long>(timeout.count()));
+    ::curl_easy_setopt(handle_, CURLOPT_WRITEFUNCTION, writeFn);
+    ::curl_easy_setopt(handle_, CURLOPT_WRITEDATA, this);
+    ::curl_easy_setopt(handle_, CURLOPT_FOLLOWLOCATION, 1L);
+  }
+
+private:
+  void writeChunk(std::span<char const> chunk) {
+    body_.append(chunk.data(), chunk.size());
+  }
+
+  static std::size_t writeFn(char const* data, std::size_t size, std::size_t nmemb, void* userdata) {
+    auto const self = static_cast<Request*>(userdata);
+    auto const chunk = std::span<char const>(data, size * nmemb);
+    self->writeChunk(chunk);
+    return chunk.size();
+  }
+
+  friend class Executor;
+};
+
+template <typename T>
+concept ResponseHandler = requires(T handler, Response const& response) {
+  { handler(response) };
 };
 
 class Executor {
@@ -142,6 +213,15 @@ public:
   Executor(Executor const&) = delete;
   Executor& operator=(Executor const&) = delete;
   Executor() = default;
+
+  static Result<Response> perform(Request&& request) noexcept {
+    auto const rc = ::curl_easy_perform(request.handle_);
+    if (rc == CURLE_OK) {
+      return Response(std::move(request.handle_), std::move(request.body_));
+    } else {
+      return std::unexpected(curl::makeEasyErrorCode(rc));
+    }
+  }
 };
 
 } // namespace walng
