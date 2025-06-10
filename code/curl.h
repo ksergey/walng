@@ -14,10 +14,6 @@
 #include <curl/curl.h>
 
 namespace walng {
-
-template <typename T = void, typename E = std::error_code>
-using Result = std::expected<T, E>;
-
 namespace curl {
 
 struct EasyErrorCategory final : std::error_category {
@@ -48,6 +44,63 @@ inline std::error_code makeMultiErrorCode(CURLMcode rc) noexcept {
   return std::error_code(static_cast<int>(rc), errorCategory);
 }
 
+enum class InternalError { FailedEasyHandle, FailedMultiHandle };
+
+struct InternalErrorCategory final : std::error_category {
+  char const* name() const noexcept override {
+    return "internal-error";
+  }
+  std::string message(int ec) const override {
+    switch (static_cast<InternalError>(ec)) {
+    case InternalError::FailedEasyHandle:
+      return "failed to init easy handle";
+    case InternalError::FailedMultiHandle:
+      return "failed to init multi handle";
+    default:
+      break;
+    }
+    return "";
+  }
+};
+
+inline std::error_code makeInternalErrorCode(InternalError rc) noexcept {
+  static InternalErrorCategory errorCategory;
+  return std::error_code(static_cast<int>(rc), errorCategory);
+}
+
+namespace detail {
+
+template <typename T>
+struct GetInfoImpl {
+  std::expected<T, std::error_code> operator()(CURL* handle, CURLINFO info) const noexcept {
+    T result;
+    if (auto const rc = ::curl_easy_getinfo(handle, info, &result); rc != CURLE_OK) {
+      return std::unexpected(makeEasyErrorCode(rc));
+    }
+    return result;
+  }
+};
+
+template <>
+struct GetInfoImpl<std::string> {
+  std::expected<std::string, std::error_code> operator()(CURL* handle, CURLINFO info) const noexcept {
+    return GetInfoImpl<char const*>{}(handle, info).transform([](char const* value) {
+      return std::string(value);
+    });
+  }
+};
+
+template <>
+struct GetInfoImpl<std::string_view> {
+  std::expected<std::string_view, std::error_code> operator()(CURL* handle, CURLINFO info) const noexcept {
+    return GetInfoImpl<char const*>{}(handle, info).transform([](char const* value) {
+      return std::string_view(value);
+    });
+  }
+};
+
+} // namespace detail
+
 class Easy {
 private:
   CURL* handle_ = nullptr;
@@ -56,12 +109,9 @@ public:
   Easy(Easy const&) = delete;
   Easy& operator=(Easy const&) = delete;
 
-  Easy() {
-    handle_ = ::curl_easy_init();
-    if (!handle_) [[unlikely]] {
-      throw std::system_error(ENOMEM, std::generic_category(), "failed to init easy handle");
-    }
-  }
+  Easy() = default;
+
+  explicit Easy(CURL* handle) noexcept : handle_(handle) {}
 
   ~Easy() noexcept {
     if (handle_) {
@@ -82,14 +132,40 @@ public:
   [[nodiscard]] operator CURL*() const noexcept {
     return handle_;
   }
-};
 
-template <typename T>
-T getInfo(Easy const& handle, CURLINFO info) noexcept {
-  T result;
-  ::curl_easy_getinfo(handle, info, &result);
-  return result;
-}
+  void reset() noexcept {
+    ::curl_easy_reset(handle_);
+  }
+
+  template <typename T>
+  std::expected<void, std::error_code> setOption(CURLoption option, T parameter) noexcept {
+    if (auto const rc = ::curl_easy_setopt(handle_, option, parameter); rc != CURLE_OK) {
+      return std::unexpected(makeEasyErrorCode(rc));
+    }
+    return {};
+  }
+
+  std::expected<void, std::error_code> setOption(CURLoption option, std::string const& parameter) noexcept {
+    return setOption(option, parameter.c_str());
+  }
+
+  std::expected<void, std::error_code> setOption(CURLoption option, std::string_view parameter) noexcept {
+    return setOption(option, std::string(parameter).c_str());
+  }
+
+  template <typename T>
+  std::expected<T, std::error_code> getInfo(CURLINFO info) const noexcept {
+    return detail::GetInfoImpl<T>{}(handle_, info);
+  }
+
+  static std::expected<Easy, std::error_code> create() noexcept {
+    auto handle = ::curl_easy_init();
+    if (!handle) [[unlikely]] {
+      return std::unexpected(makeInternalErrorCode(InternalError::FailedEasyHandle));
+    }
+    return Easy(handle);
+  }
+};
 
 class Multi {
 private:
@@ -99,12 +175,9 @@ public:
   Multi(Multi const&) = delete;
   Multi& operator=(Multi const&) = delete;
 
-  Multi() {
-    handle_ = ::curl_multi_init();
-    if (!handle_) [[unlikely]] {
-      throw std::system_error(ENOMEM, std::generic_category(), "failed to init multi handle");
-    }
-  }
+  Multi() = default;
+
+  explicit Multi(CURLM* handle) noexcept : handle_(handle) {}
 
   Multi(Multi&& other) noexcept : handle_(std::exchange(other.handle_, nullptr)) {}
 
@@ -124,6 +197,14 @@ public:
 
   [[nodiscard]] operator CURLM*() const noexcept {
     return handle_;
+  }
+
+  static std::expected<Multi, std::error_code> create() noexcept {
+    auto handle = ::curl_multi_init();
+    if (!handle) [[unlikely]] {
+      return std::unexpected(makeInternalErrorCode(InternalError::FailedMultiHandle));
+    }
+    return Multi(handle);
   }
 };
 
@@ -147,12 +228,16 @@ public:
     return body_;
   }
 
-  [[nodiscard]] std::chrono::microseconds totalTime() const noexcept {
-    return std::chrono::microseconds(curl::getInfo<curl_off_t>(handle_, CURLINFO_TOTAL_TIME_T));
+  [[nodiscard]] std::chrono::microseconds totalTime() const {
+    return handle_.getInfo<curl_off_t>(CURLINFO_TOTAL_TIME_T)
+        .transform([](curl_off_t value) {
+          return std::chrono::microseconds(value);
+        })
+        .value();
   }
 
-  [[nodiscard]] std::string effectiveURL() const noexcept {
-    return std::string(curl::getInfo<char*>(handle_, CURLINFO_EFFECTIVE_URL));
+  [[nodiscard]] std::string_view effectiveURL() const {
+    return handle_.getInfo<std::string_view>(CURLINFO_EFFECTIVE_URL).value();
   }
 };
 
@@ -161,12 +246,25 @@ private:
   curl::Easy handle_;
   std::string body_;
 
+private:
+  explicit Request(curl::Easy handle) noexcept : handle_(std::move(handle)) {
+    if (handle_) {
+      handle_.setOption(CURLOPT_WRITEDATA, this);
+      handle_.setOption(CURLOPT_WRITEFUNCTION, writeFn);
+      handle_.setOption(CURLOPT_FOLLOWLOCATION, 1L);
+    }
+  }
+
 public:
   Request(Request const&) = delete;
   Request& operator=(Request const&) = delete;
 
+  Request() = default;
+
   Request(Request&& other) noexcept : handle_(std::move(other.handle_)), body_(std::move(other.body_)) {
-    ::curl_easy_setopt(handle_, CURLOPT_WRITEDATA, this);
+    if (handle_) {
+      handle_.setOption(CURLOPT_WRITEDATA, this);
+    }
   }
 
   Request& operator=(Request&& other) noexcept {
@@ -177,12 +275,30 @@ public:
     return *this;
   }
 
-  Request(std::string const& url, std::chrono::milliseconds timeout = std::chrono::seconds(5)) {
-    ::curl_easy_setopt(handle_, CURLOPT_URL, url.c_str());
-    ::curl_easy_setopt(handle_, CURLOPT_TIMEOUT, static_cast<long>(timeout.count()));
-    ::curl_easy_setopt(handle_, CURLOPT_WRITEFUNCTION, writeFn);
-    ::curl_easy_setopt(handle_, CURLOPT_WRITEDATA, this);
-    ::curl_easy_setopt(handle_, CURLOPT_FOLLOWLOCATION, 1L);
+  static std::expected<Request, std::error_code> create() noexcept {
+    return curl::Easy::create().transform([](curl::Easy handle) {
+      return Request(std::move(handle));
+    });
+  }
+
+  std::expected<void, std::error_code> setURL(std::string const& value) noexcept {
+    return handle_.setOption(CURLOPT_URL, value);
+  }
+
+  std::expected<void, std::error_code> setTimeout(std::chrono::milliseconds value) noexcept {
+    return handle_.setOption(CURLOPT_TIMEOUT_MS, static_cast<long>(value.count()));
+  }
+
+  std::expected<Response, std::error_code> perform() noexcept {
+    if (auto const rc = ::curl_easy_perform(handle_); rc != CURLE_OK) {
+      return std::unexpected(curl::makeEasyErrorCode(rc));
+    }
+    return Response{std::move(handle_), std::move(body_)};
+  }
+
+  void reset() noexcept {
+    handle_.reset();
+    body_.clear();
   }
 
 private:
@@ -195,32 +311,6 @@ private:
     auto const chunk = std::span<char const>(data, size * nmemb);
     self->writeChunk(chunk);
     return chunk.size();
-  }
-
-  friend class Executor;
-};
-
-template <typename T>
-concept ResponseHandler = requires(T handler, Response const& response) {
-  { handler(response) };
-};
-
-class Executor {
-private:
-  curl::Multi handle_;
-
-public:
-  Executor(Executor const&) = delete;
-  Executor& operator=(Executor const&) = delete;
-  Executor() = default;
-
-  static Result<Response> perform(Request&& request) noexcept {
-    auto const rc = ::curl_easy_perform(request.handle_);
-    if (rc == CURLE_OK) {
-      return Response(std::move(request.handle_), std::move(request.body_));
-    } else {
-      return std::unexpected(curl::makeEasyErrorCode(rc));
-    }
   }
 };
 
