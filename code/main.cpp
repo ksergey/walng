@@ -2,45 +2,57 @@
 // SPDX-License-Identifier: MIT
 
 #include <algorithm>
+#include <expected>
 #include <filesystem>
 #include <print>
 
 #include <cxxopts.hpp>
 
+#include "Request.h"
 #include "generate.h"
 #include "utils.h"
 #include "version.h"
 
-#include "curl.h"
+std::expected<std::filesystem::path, std::error_code> downloadFileOrGetFromCache(std::string const& url) noexcept {
+  using namespace walng;
 
-int curl_test_xxx() {
-  // using namespace walng;
-
-  // auto const result = Executor::perform(Request("wttr.in/Moscow"));
-  // if (!result) {
-  //   std::print(stderr, "can't perform query ({})", result.error().message());
-  //   return EXIT_FAILURE;
-  // }
-
-  // auto const& response = result.value();
-  // // std::print(stdout, "effective url: \"{}\"\n", response.effectiveURL());
-  // // std::print(stdout, "total time: {}\n",
-  // // std::chrono::duration_cast<std::chrono::milliseconds>(response.totalTime()));
-  // std::print(stdout, "response:\n{}\n", response.body());
-
-  return EXIT_SUCCESS;
+  return Request::create()
+      .and_then([&](auto&& request) -> std::expected<Response, std::error_code> {
+        if (auto const rc = request.setURL(url.c_str()); !rc) {
+          return std::unexpected(rc.error());
+        }
+        if (auto const rc = request.setTimeout(std::chrono::seconds(5)); !rc) {
+          return std::unexpected(rc.error());
+        }
+        return request.perform();
+      })
+      .and_then([&](auto&& response) -> std::expected<std::filesystem::path, std::error_code> {
+        auto path = cacheBasePath() / "theme";
+        std::error_code ec;
+        create_directories(path, ec);
+        if (!ec) {
+          return std::unexpected(ec);
+        }
+        path /= "theme.yaml";
+        FILE* file = ::fopen(path.c_str(), "w");
+        if (!file) {
+          return std::unexpected(std::error_code(errno, std::system_category()));
+        }
+        ::fwrite(response.body().data(), response.body().size(), 1, file);
+        ::fclose(file);
+        return path;
+      });
 }
 
 int main(int argc, char* argv[]) {
-  return curl_test_xxx();
-
   try {
     cxxopts::Options options("walng", "color template generator for base16 framework\n");
 
     // clang-format off
     options.add_options()
       ("config", "path to config file", cxxopts::value<std::string>(), "PATH")
-      ("theme", "path to theme file", cxxopts::value<std::string>(), "PATH")
+      ("theme-file", "path to theme file", cxxopts::value<std::string>(), "PATH")
+      ("theme-url", "url to theme file", cxxopts::value<std::string>(), "URL")
       ("help", "prints the help and exit")
       ("version", "prints the version and exit")
     ;
@@ -65,12 +77,22 @@ int main(int argc, char* argv[]) {
       return walng::configPathBase() / "config.yaml";
     }();
 
-    if (result.count("theme") == 0) {
-      throw std::runtime_error("argument '--theme' is required");
+    if (result.count("theme-file") > 0) {
+      if (result.count("theme-url") > 0) {
+        throw std::runtime_error("argument `--theme-file` and `--theme-url` can't be set simultaneously");
+      }
+      std::filesystem::path const themePath = result["theme-file"].as<std::string>();
+      walng::generate(configPath, themePath);
+    } else if (result.count("theme-url") > 0) {
+      std::string const& themeUrl = result["theme-url"].as<std::string>();
+      auto const downloadResult = downloadFileOrGetFromCache(themeUrl);
+      if (!downloadResult) {
+        throw std::system_error(downloadResult.error(), "failed to download theme");
+      }
+      walng::generate(configPath, downloadResult.value());
+    } else {
+      throw std::runtime_error("argument `--theme-file` or `--theme-url` should be set");
     }
-    std::filesystem::path const themePath = result["theme"].as<std::string>();
-
-    walng::generate(configPath, themePath);
 
   } catch (std::exception const& e) {
     std::print(stderr, "Error: {}\n", e.what());
