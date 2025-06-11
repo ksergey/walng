@@ -19,7 +19,7 @@ target_compile_definitions(${TargetName}
 )
 
 target_link_libraries(${TargetName}
-  PRIVATE cxxopts::cxxopts yaml-cpp::yaml-cpp 3rdparty::inja)
+  PRIVATE cxxopts::cxxopts yaml-cpp::yaml-cpp 3rdparty::inja CURL::libcurl_static)
 
 file(GLOB_RECURSE Sources "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE Headers "${CMAKE_CURRENT_SOURCE_DIR}/*.h")

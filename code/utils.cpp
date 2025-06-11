@@ -18,13 +18,23 @@ std::filesystem::path const& homePath() {
 }
 
 std::filesystem::path const& configPathBase() {
-  static std::filesystem::path configPathBase = [] {
+  static std::filesystem::path path = [] {
     if (auto const result = secure_getenv("XDG_CONFIG_HOME"); result) {
       return std::filesystem::path(result) / "walng";
     }
     return homePath() / ".config" / "walng";
   }();
-  return configPathBase;
+  return path;
+}
+
+std::filesystem::path const& cacheBasePath() {
+  static std::filesystem::path path = [] {
+    if (auto const result = secure_getenv("XDG_CACHE_HOME"); result) {
+      return std::filesystem::path(result) / "walng";
+    }
+    return homePath() / ".cache" / "walng";
+  }();
+  return path;
 }
 
 void expandTilda(std::filesystem::path& path) {

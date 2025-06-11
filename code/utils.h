@@ -19,6 +19,13 @@ std::filesystem::path const& homePath();
 /// $HOME/.config/walng
 std::filesystem::path const& configPathBase();
 
+/// Get path to \c walng cache directory
+/// @throw std::runtime_error on $HOME not set
+///
+/// $XDG_CACHE_HOME/walng
+/// $HOME/.cache/walng
+std::filesystem::path const& cacheBasePath();
+
 /// Expand @c ~ to $HOME
 void expandTilda(std::filesystem::path& path);
 
