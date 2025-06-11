@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-set(VersionString "0.0.1")
+set(VersionString "0.0.5")
 
 project(walng CXX)
 
