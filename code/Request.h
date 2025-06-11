@@ -10,20 +10,40 @@
 
 namespace walng {
 
+enum RequestError { InternalError };
+
+namespace detail {
+
+struct RequestErrorCategory final : std::error_category {
+  char const* name() const noexcept override {
+    return "request-error";
+  }
+  std::string message(int ec) const override {
+    switch (static_cast<RequestError>(ec)) {
+    case RequestError::InternalError:
+      return "internal error";
+    default:
+      break;
+    }
+    return "unknown error";
+  }
+};
+
+inline RequestErrorCategory const& getRequestErrorCategory() noexcept {
+  static RequestErrorCategory category;
+  return category;
+}
+
+inline std::error_code makeRequestErrorCode(RequestError ec) {
+  return std::error_code(static_cast<int>(ec), getRequestErrorCategory());
+}
+
+} // namespace detail
+
 class Request {
 private:
-  curl::Easy handle_;
+  curl::EasyHandle handle_;
   std::string body_;
-
-private:
-  explicit Request(curl::Easy handle) noexcept : handle_(std::move(handle)) {
-    if (handle_) {
-      handle_.setOption(CURLOPT_WRITEDATA, this);
-      handle_.setOption(CURLOPT_WRITEFUNCTION, writeFn);
-      handle_.setOption(CURLOPT_FOLLOWLOCATION, 1L);
-      handle_.setOption(CURLOPT_HTTPGET, 1L);
-    }
-  }
 
 public:
   Request(Request const&) = delete;
@@ -33,7 +53,7 @@ public:
 
   Request(Request&& other) noexcept : handle_(std::move(other.handle_)), body_(std::move(other.body_)) {
     if (handle_) {
-      handle_.setOption(CURLOPT_WRITEDATA, this);
+      handle_.option(CURLOPT_WRITEDATA, this);
     }
   }
 
@@ -45,30 +65,42 @@ public:
     return *this;
   }
 
-  static std::expected<Request, std::error_code> create() noexcept {
-    return curl::Easy::create().transform([](curl::Easy handle) {
-      return Request(std::move(handle));
-    });
-  }
-
-  std::expected<void, std::error_code> setURL(std::string const& value) noexcept {
-    return handle_.setOption(CURLOPT_URL, value);
-  }
-
-  std::expected<void, std::error_code> setTimeout(std::chrono::milliseconds value) noexcept {
-    return handle_.setOption(CURLOPT_TIMEOUT_MS, static_cast<long>(value.count()));
-  }
-
-  std::expected<Response, std::error_code> perform() noexcept {
-    if (auto const rc = ::curl_easy_perform(handle_); rc != CURLE_OK) {
-      return curl::detail::makeUnexpectedEasyError(rc);
+  std::expected<void, std::system_error> prepare(
+      std::string const& url, std::chrono::milliseconds timeout = std::chrono::seconds(5)) noexcept {
+    if (!handle_) {
+      auto result = curl::EasyHandle::create();
+      if (!result) {
+        return std::unexpected(std::system_error(result.error().code(), "failed to init CURL easy handle"));
+      }
+      handle_ = std::move(*result);
+    } else {
+      handle_.reset();
     }
-    return Response{std::move(handle_), std::move(body_)};
+
+    handle_.option(CURLOPT_WRITEDATA, this);
+    handle_.option(CURLOPT_WRITEFUNCTION, writeFn);
+    handle_.option(CURLOPT_FOLLOWLOCATION, 1L);
+
+    if (auto const rc = handle_.option(CURLOPT_URL, url); !rc) {
+      return std::unexpected(std::system_error(rc.error().code(), "failed to set URL"));
+    }
+    if (auto const rc = handle_.option(CURLOPT_TIMEOUT_MS, static_cast<long>(timeout.count())); !rc) {
+      return std::unexpected(std::system_error(rc.error().code(), "failed to set timeout"));
+    }
+
+    body_.clear();
+
+    return {};
   }
 
-  void reset() noexcept {
-    handle_.reset();
-    body_.clear();
+  std::expected<Response, std::system_error> perform() noexcept {
+    return handle_.perform()
+        .transform([&] {
+          return Response(std::move(handle_), std::move(body_));
+        })
+        .transform_error([&](std::system_error const& e) {
+          return std::system_error(e.code(), "failed to execute request");
+        });
   }
 
 private:

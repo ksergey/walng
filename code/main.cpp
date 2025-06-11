@@ -13,35 +13,62 @@
 #include "utils.h"
 #include "version.h"
 
-std::expected<std::filesystem::path, std::error_code> downloadFileOrGetFromCache(std::string const& url) noexcept {
+std::expected<std::filesystem::path, std::system_error> extractFileNameFromUrl(std::string const& url) noexcept {
+  return ::walng::curl::UrlHandle::create()
+      .and_then([&](auto&& handle) {
+        return handle.setPart(CURLUPART_URL, url).and_then([&] {
+          return handle.getPart(CURLUPART_PATH);
+        });
+      })
+      .transform([](::walng::curl::UrlPart part) {
+        return std::filesystem::path(part.c_str()).filename();
+      });
+}
+
+std::expected<void, std::system_error> writeFile(std::filesystem::path const& path, std::string_view content) noexcept {
+  FILE* file = ::fopen(path.c_str(), "w");
+  if (!file) {
+    return std::unexpected(std::system_error(errno, std::system_category(), "failed to open file for writting"));
+  }
+
+  // TODO: check result
+  ::fwrite(content.data(), content.size(), 1, file);
+  ::fclose(file);
+
+  return {};
+}
+
+std::expected<std::filesystem::path, std::system_error> downloadFileOrGetFromCache(std::string const& url) noexcept {
   using namespace walng;
 
-  return Request::create()
-      .and_then([&](auto&& request) -> std::expected<Response, std::error_code> {
-        if (auto const rc = request.setURL(url.c_str()); !rc) {
-          return std::unexpected(rc.error());
-        }
-        if (auto const rc = request.setTimeout(std::chrono::seconds(5)); !rc) {
-          return std::unexpected(rc.error());
-        }
-        return request.perform();
-      })
-      .and_then([&](auto&& response) -> std::expected<std::filesystem::path, std::error_code> {
-        auto path = cacheBasePath() / "theme";
-        std::error_code ec;
-        create_directories(path, ec);
-        if (!ec) {
-          return std::unexpected(ec);
-        }
-        path /= "theme.yaml";
-        FILE* file = ::fopen(path.c_str(), "w");
-        if (!file) {
-          return std::unexpected(std::error_code(errno, std::system_category()));
-        }
-        ::fwrite(response.body().data(), response.body().size(), 1, file);
-        ::fclose(file);
-        return path;
-      });
+  auto filename = extractFileNameFromUrl(url);
+  if (!filename) {
+    return std::unexpected(filename.error());
+  }
+
+  auto request = Request();
+  if (auto const rc = request.prepare(url); !rc) {
+    return std::unexpected(rc.error());
+  }
+
+  auto response = request.perform();
+  if (!response) {
+    return std::unexpected(response.error());
+  }
+
+  auto const cacheDir = cacheBasePath() / "themes";
+  std::error_code ec;
+  create_directories(cacheDir, ec);
+  if (ec) {
+    return std::unexpected(std::system_error(ec, "can't create cache dir"));
+  }
+
+  auto const themeFile = cacheDir / *filename;
+  if (auto const rc = writeFile(themeFile, response->body()); !rc) {
+    return std::unexpected(response.error());
+  }
+
+  return themeFile;
 }
 
 int main(int argc, char* argv[]) {
@@ -87,7 +114,7 @@ int main(int argc, char* argv[]) {
       std::string const& themeUrl = result["theme-url"].as<std::string>();
       auto const downloadResult = downloadFileOrGetFromCache(themeUrl);
       if (!downloadResult) {
-        throw std::system_error(downloadResult.error(), "failed to download theme");
+        throw downloadResult.error();
       }
       walng::generate(configPath, downloadResult.value());
     } else {

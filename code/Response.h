@@ -12,7 +12,7 @@ namespace walng {
 
 class Response {
 private:
-  curl::Easy handle_;
+  curl::EasyHandle handle_;
   std::string body_;
 
 public:
@@ -22,14 +22,14 @@ public:
   Response& operator=(Response&&) = default;
   Response() = default;
 
-  Response(curl::Easy handle, std::string body) noexcept : handle_(std::move(handle)), body_(std::move(body)) {}
+  Response(curl::EasyHandle handle, std::string body) noexcept : handle_(std::move(handle)), body_(std::move(body)) {}
 
   [[nodiscard]] std::string const& body() const noexcept {
     return body_;
   }
 
   [[nodiscard]] std::chrono::microseconds totalTime() const {
-    return handle_.getInfo<curl_off_t>(CURLINFO_TOTAL_TIME_T)
+    return handle_.info<curl_off_t>(CURLINFO_TOTAL_TIME_T)
         .transform([](curl_off_t value) {
           return std::chrono::microseconds(value);
         })
@@ -37,7 +37,7 @@ public:
   }
 
   [[nodiscard]] std::string_view effectiveURL() const {
-    return handle_.getInfo<std::string_view>(CURLINFO_EFFECTIVE_URL).value();
+    return handle_.info<std::string_view>(CURLINFO_EFFECTIVE_URL).value();
   }
 };
 
