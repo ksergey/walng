@@ -56,19 +56,23 @@ std::expected<std::filesystem::path, std::system_error> downloadFileOrGetFromCac
     return std::unexpected(response.error());
   }
 
-  auto const cacheDir = cacheBasePath() / "themes";
+  auto cachePath = getCachePath();
+  if (!cachePath.has_value()) {
+    return std::unexpected(cachePath.error());
+  }
+  auto const themesPath = cachePath.value() / "themes";
   std::error_code ec;
-  create_directories(cacheDir, ec);
+  create_directories(themesPath, ec);
   if (ec) {
-    return std::unexpected(std::system_error(ec, "can't create cache dir"));
+    return std::unexpected(std::system_error(ec, "can't create themes cache dir"));
   }
 
-  auto const themeFile = cacheDir / *filename;
-  if (auto const rc = writeFile(themeFile, response->body()); !rc) {
+  auto const themeFilePath = themesPath / *filename;
+  if (auto const rc = writeFile(themeFilePath, response->body()); !rc) {
     return std::unexpected(response.error());
   }
 
-  return themeFile;
+  return themeFilePath;
 }
 
 int main(int argc, char* argv[]) {
@@ -101,7 +105,11 @@ int main(int argc, char* argv[]) {
       if (result.count("config")) {
         return std::filesystem::path(result["config"].as<std::string>());
       }
-      return walng::configPathBase() / "config.yaml";
+      auto configPath = walng::getConfigPath();
+      if (!configPath.has_value()) {
+        throw configPath.error();
+      }
+      return configPath.value() / "config.yaml";
     }();
 
     if (result.count("theme-file") > 0) {

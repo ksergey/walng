@@ -57,16 +57,19 @@ void generate(std::filesystem::path const& configPath, std::filesystem::path con
   inja::Environment env;
   configure(env);
 
-  std::filesystem::path const tempPath = makeTemp();
+  auto tempPath = makeTempFilePath();
+  if (!tempPath.has_value()) {
+    throw tempPath.error();
+  }
 
   for (auto const& item : config.items) {
     try {
-      env.write(item.templatePath, jsonThemeRoot, tempPath);
+      env.write(item.templatePath, jsonThemeRoot, tempPath.value());
       if (exists(item.targetPath)) {
         remove(item.targetPath);
       }
-      std::filesystem::copy_file(tempPath, item.targetPath);
-      remove(tempPath);
+      std::filesystem::copy_file(tempPath.value(), item.targetPath);
+      remove(tempPath.value());
 
       if (!item.hook.empty()) {
         auto const command = makeSystemExecCommand(config.shell, item.hook);

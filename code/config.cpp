@@ -31,14 +31,17 @@ Config loadConfigFromYAMLFile(std::filesystem::path const& configPath) {
     item.name = yamlItemNode["name"].as<std::string>();
 
     item.templatePath = yamlItemNode["template"].as<std::string>();
-    expandTilda(item.templatePath);
+    if (auto const rc = expandTilda(item.templatePath); !rc) {
+      throw rc.error();
+    }
     if (!exists(item.templatePath)) {
       throw std::runtime_error(
           std::format("template {} not found for item '{}'", item.templatePath.c_str(), item.name));
     }
-
     item.targetPath = yamlItemNode["target"].as<std::string>();
-    expandTilda(item.targetPath);
+    if (auto const rc = expandTilda(item.targetPath); !rc) {
+      throw rc.error();
+    }
     if (!exists(item.targetPath.parent_path())) {
       throw std::runtime_error(std::format(
           "target parent path {} not exists for item '{}'", item.targetPath.parent_path().c_str(), item.name));
