@@ -24,6 +24,13 @@ target_link_libraries(${TargetName}
 file(GLOB_RECURSE Sources "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE Headers "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 
+CMakeUtilsAddTestsFromSourceList(Sources
+  PREFIX ${TargetName}
+  COMPILE_OPTIONS -Wall -Wextra -g
+  LIBS doctest::doctest_with_main)
+
+CMakeUtilsExcludeTestsAndBenchmarksFromSourceList(Sources)
+
 target_sources(${TargetName} PUBLIC ${Headers} ${Sources})
 
 file(COPY config.yaml DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
