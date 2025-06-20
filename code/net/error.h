@@ -9,36 +9,58 @@
 
 namespace walng::net {
 
-enum class CurlError { EasyInit, UrlInit, EasySetOpt, EasyGetInfo, UrlGet, UrlSet };
+enum class CurlInitError { EasyInit, UrlInit };
 
-struct CurlErrorCategory final : std::error_category {
+struct CurlInitErrorCategory final : std::error_category {
   char const* name() const noexcept override {
-    return "curl-error";
+    return "curl-init-error";
   }
   std::string message(int ec) const override {
-    switch (static_cast<CurlError>(ec)) {
-    case CurlError::EasyInit:
+    switch (static_cast<CurlInitError>(ec)) {
+    case CurlInitError::EasyInit:
       return "failed to init easy handle";
-    case CurlError::UrlInit:
+    case CurlInitError::UrlInit:
       return "failed to init url handle";
-    case CurlError::EasySetOpt:
-      return "failed to set easy opt";
-    case CurlError::EasyGetInfo:
-      return "failed to get easy info";
-    case CurlError::UrlGet:
-      return "failed to get url part";
-    case CurlError::UrlSet:
-      return "failed to set url part";
     default:
       return "(unrecognized error)";
     }
   }
 };
 
-CurlErrorCategory const theCurlErrorCategory{};
+CurlInitErrorCategory const theCurlInitErrorCategory{};
 
-inline std::error_code make_error_code(CurlError e) noexcept {
-  return {static_cast<int>(e), theCurlErrorCategory};
+inline std::error_code make_error_code(CurlInitError e) noexcept {
+  return {static_cast<int>(e), theCurlInitErrorCategory};
+}
+
+struct CurlEasyErrorCategory final : std::error_category {
+  char const* name() const noexcept override {
+    return "curl-easy-error";
+  }
+  std::string message(int ec) const override {
+    return ::curl_easy_strerror(static_cast<::CURLcode>(ec));
+  }
+};
+
+CurlEasyErrorCategory const theCurlEasyErrorCategory{};
+
+inline std::error_code make_error_code(::CURLcode ec) {
+  return std::error_code(static_cast<int>(ec), theCurlEasyErrorCategory);
+}
+
+struct CurlUrlErrorCategory final : std::error_category {
+  char const* name() const noexcept override {
+    return "curl-url-error";
+  }
+  std::string message(int ec) const override {
+    return ::curl_url_strerror(static_cast<::CURLUcode>(ec));
+  }
+};
+
+CurlUrlErrorCategory const theCurlUrlErrorCategory{};
+
+inline std::error_code make_error_code(::CURLUcode ec) {
+  return std::error_code(static_cast<int>(ec), theCurlUrlErrorCategory);
 }
 
 } // namespace walng::net

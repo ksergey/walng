@@ -7,8 +7,8 @@
 
 namespace walng::net {
 
-TEST_CASE("net-error: basic") {
-  CHECK(make_error_code(CurlError::UrlInit).message() == "failed to init url handle");
+TEST_CASE("net-error: CurlInit") {
+  CHECK(make_error_code(CurlInitError::UrlInit).message() == "failed to init url handle");
 }
 
 } // namespace walng::net
