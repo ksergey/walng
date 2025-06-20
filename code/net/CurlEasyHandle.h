@@ -61,13 +61,13 @@ public:
 
   /// Wrapper around @c curl_easy_setopt
   template <typename T>
-  std::expected<void, std::error_code> option(CURLoption opt, T&& value) noexcept {
+  std::expected<void, std::error_code> setOption(CURLoption opt, T&& value) noexcept {
     if constexpr (std::is_same_v<std::decay_t<T>, std::string>) {
-      return this->optionImpl(opt, value.c_str());
+      return this->setOptionImpl(opt, value.c_str());
     } else if constexpr (std::is_same_v<std::decay_t<T>, std::string_view>) {
-      return this->optionImpl(opt, std::string(value).c_str());
+      return this->setOptionImpl(opt, std::string(value).c_str());
     } else {
-      return this->optionImpl(opt, std::forward<T>(value));
+      return this->setOptionImpl(opt, std::forward<T>(value));
     }
   }
 
@@ -97,7 +97,7 @@ public:
 
 private:
   template <typename T>
-  inline std::expected<void, std::error_code> optionImpl(CURLoption opt, T&& value) noexcept {
+  inline std::expected<void, std::error_code> setOptionImpl(CURLoption opt, T&& value) noexcept {
     if (auto const rc = ::curl_easy_setopt(handle_, opt, std::forward<T>(value)); rc != CURLE_OK) [[unlikely]] {
       return std::unexpected(make_error_code(rc));
     }

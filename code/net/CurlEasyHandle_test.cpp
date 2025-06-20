@@ -10,7 +10,7 @@ namespace walng::net {
 TEST_CASE("CurlEasyHandle: move-semantic") {
   CurlEasyHandle handle;
   CHECK(!handle);
-  CHECK(!handle.option(CURLOPT_FOLLOWLOCATION, 1U));
+  CHECK(!handle.setOption(CURLOPT_FOLLOWLOCATION, 1U));
 
   auto result = CurlEasyHandle::create();
   CHECK(result);
@@ -20,7 +20,7 @@ TEST_CASE("CurlEasyHandle: move-semantic") {
   CHECK(handle);
   CHECK(!result.value());
 
-  CHECK(handle.option(CURLOPT_FOLLOWLOCATION, 1U));
+  CHECK(handle.setOption(CURLOPT_FOLLOWLOCATION, 1U));
 }
 
 } // namespace walng::net
