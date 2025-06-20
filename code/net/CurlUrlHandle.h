@@ -79,7 +79,7 @@ public:
   }
 
 private:
-  inline std::expected<void, std::error_code> setPartImpl(CURLUPart part, char const* value) noexcept {
+  std::expected<void, std::error_code> setPartImpl(CURLUPart part, char const* value) noexcept {
     if (auto const rc = ::curl_url_set(handle_, part, value, 0); rc != CURLUE_OK) [[unlikely]] {
       return std::unexpected(make_error_code(rc));
     }

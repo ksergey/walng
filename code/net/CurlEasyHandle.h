@@ -97,7 +97,7 @@ public:
 
 private:
   template <typename T>
-  inline std::expected<void, std::error_code> setOptionImpl(CURLoption opt, T&& value) noexcept {
+  std::expected<void, std::error_code> setOptionImpl(CURLoption opt, T&& value) noexcept {
     if (auto const rc = ::curl_easy_setopt(handle_, opt, std::forward<T>(value)); rc != CURLE_OK) [[unlikely]] {
       return std::unexpected(make_error_code(rc));
     }
@@ -105,7 +105,7 @@ private:
   }
 
   template <typename T>
-  inline std::expected<T, std::error_code> infoImpl(CURLINFO info) const noexcept {
+  std::expected<T, std::error_code> infoImpl(CURLINFO info) const noexcept {
     T result;
     if (auto const rc = ::curl_easy_getinfo(handle_, info, &result); rc != CURLE_OK) [[unlikely]] {
       return std::unexpected(make_error_code(rc));
