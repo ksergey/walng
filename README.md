@@ -23,14 +23,14 @@ Download base16 (or base24) scheme you like from https://github.com/tinted-themi
 run walng:
 
 ```sh
-curl -O -L https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/spec-0.11/base16/terracotta.yaml && ./walng --theme-file terracotta.yaml
+curl -O -L https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/spec-0.11/base16/terracotta.yaml && ./walng --theme terracotta.yaml
 
 ```
 
 or
 
 ```sh
-walng --theme-url https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/spec-0.11/base16/terracotta.yaml
+walng --theme https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/spec-0.11/base16/terracotta.yaml
 
 ```
 

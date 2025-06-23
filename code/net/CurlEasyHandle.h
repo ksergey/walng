@@ -73,7 +73,7 @@ public:
 
   /// Wrapper around @c curl_easy_getinfo
   template <typename T>
-  std::expected<T, std::error_code> info(CURLINFO info) const noexcept {
+  std::expected<T, std::error_code> info(CURLINFO info) const {
     if constexpr (std::is_same_v<T, std::string>) {
       return this->infoImpl<char const*>(info).transform([](char const* value) {
         return std::string(value);
@@ -105,7 +105,7 @@ private:
   }
 
   template <typename T>
-  std::expected<T, std::error_code> infoImpl(CURLINFO info) const noexcept {
+  std::expected<T, std::error_code> infoImpl(CURLINFO info) const {
     T result;
     if (auto const rc = ::curl_easy_getinfo(handle_, info, &result); rc != CURLE_OK) [[unlikely]] {
       return std::unexpected(make_error_code(rc));
