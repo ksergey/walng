@@ -7,14 +7,14 @@
 
 namespace walng {
 
-std::expected<std::filesystem::path, std::system_error> getHomePath() {
+std::expected<std::filesystem::path, std::error_code> getHomePath() {
   if (auto const result = ::secure_getenv("HOME"); result) {
-    return std::filesystem::path(result);
+    return {std::filesystem::path(result)};
   }
-  return std::unexpected(std::system_error(ENOENT, std::system_category(), "HOME env variable not set"));
+  return std::unexpected(std::error_code(ENOENT, std::system_category()));
 }
 
-std::expected<std::filesystem::path, std::system_error> getConfigPath() {
+std::expected<std::filesystem::path, std::error_code> getConfigPath() {
   if (auto const result = ::secure_getenv("XDG_CONFIG_HOME"); result) {
     return std::filesystem::path(result) / "walng";
   }
@@ -23,7 +23,7 @@ std::expected<std::filesystem::path, std::system_error> getConfigPath() {
   });
 }
 
-std::expected<std::filesystem::path, std::system_error> getCachePath() {
+std::expected<std::filesystem::path, std::error_code> getCachePath() {
   if (auto const result = ::secure_getenv("XDG_CACHE_HOME"); result) {
     return std::filesystem::path(result) / "walng";
   }
@@ -32,7 +32,7 @@ std::expected<std::filesystem::path, std::system_error> getCachePath() {
   });
 }
 
-std::expected<std::filesystem::path, std::system_error> makeTempFilePath() {
+std::expected<std::filesystem::path, std::error_code> makeTempFilePath() {
   static constexpr std::string_view kAllowedChars = "abcdefghijklmnaoqrstuvwxyz1234567890";
 
   std::random_device randomDevice;
@@ -47,12 +47,12 @@ std::expected<std::filesystem::path, std::system_error> makeTempFilePath() {
   std::error_code ec;
   auto tempDirPath = std::filesystem::temp_directory_path(ec);
   if (ec) {
-    return std::unexpected(std::system_error(ec, "can't obtain temp directory path"));
+    return std::unexpected(ec);
   }
   return tempDirPath / std::string_view(tmpName.data(), tmpName.size());
 }
 
-std::expected<void, std::system_error> expandTilda(std::filesystem::path& path) {
+std::expected<void, std::error_code> expandTilda(std::filesystem::path& path) {
   if (auto const& str = path.native(); str.starts_with("~/")) {
     auto homePath = getHomePath();
     if (!homePath.has_value()) {

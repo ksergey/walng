@@ -1,10 +1,18 @@
 include(FetchContent)
 
+# -------------------------------------------------------------------------------------------------
+# cxxopts
+# -------------------------------------------------------------------------------------------------
+
 FetchContent_Declare(cxxopts
   URL https://github.com/jarro2783/cxxopts/archive/refs/tags/v3.2.0.tar.gz
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(cxxopts)
+
+# -------------------------------------------------------------------------------------------------
+# yaml-cpp
+# -------------------------------------------------------------------------------------------------
 
 FetchContent_Declare(yaml-cpp
   URL https://github.com/jbeder/yaml-cpp/archive/2f86d13775d119edbb69af52e5f566fd65c6953b.zip
@@ -12,16 +20,28 @@ FetchContent_Declare(yaml-cpp
 )
 FetchContent_MakeAvailable(yaml-cpp)
 
+# -------------------------------------------------------------------------------------------------
+# json
+# -------------------------------------------------------------------------------------------------
+
 FetchContent_Declare(json
   URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(json)
 
+# -------------------------------------------------------------------------------------------------
+# inja
+# -------------------------------------------------------------------------------------------------
+
 add_library(inja INTERFACE)
 target_include_directories(inja INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(inja INTERFACE nlohmann_json::nlohmann_json)
 add_library(3rdparty::inja ALIAS inja)
+
+# -------------------------------------------------------------------------------------------------
+# curl
+# -------------------------------------------------------------------------------------------------
 
 set(BUILD_SHARED_LIBS OFF)
 set(BUILD_STATIC_LIBS ON)
@@ -46,3 +66,15 @@ FetchContent_Declare(curl
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(curl)
+
+# -------------------------------------------------------------------------------------------------
+# doctest
+# -------------------------------------------------------------------------------------------------
+
+FetchContent_Declare(doctest
+  URL https://github.com/doctest/doctest/archive/refs/tags/v2.4.12.tar.gz
+  EXCLUDE_FROM_ALL
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
+)
+FetchContent_MakeAvailable(doctest)
+

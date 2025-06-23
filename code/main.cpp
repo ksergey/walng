@@ -10,6 +10,7 @@
 
 #include "Request.h"
 #include "generate.h"
+#include "net/download.h"
 #include "utils.h"
 #include "version.h"
 
@@ -25,10 +26,10 @@ std::expected<std::filesystem::path, std::system_error> extractFileNameFromUrl(s
       });
 }
 
-std::expected<void, std::system_error> writeFile(std::filesystem::path const& path, std::string_view content) noexcept {
+std::expected<void, std::error_code> writeFile(std::filesystem::path const& path, std::string_view content) noexcept {
   FILE* file = ::fopen(path.c_str(), "w");
   if (!file) {
-    return std::unexpected(std::system_error(errno, std::system_category(), "failed to open file for writting"));
+    return std::unexpected(std::error_code(errno, std::system_category()));
   }
 
   // TODO: check result
@@ -38,41 +39,35 @@ std::expected<void, std::system_error> writeFile(std::filesystem::path const& pa
   return {};
 }
 
-std::expected<std::filesystem::path, std::system_error> downloadFileOrGetFromCache(std::string const& url) noexcept {
-  using namespace walng;
-
-  auto filename = extractFileNameFromUrl(url);
-  if (!filename) {
-    return std::unexpected(filename.error());
-  }
-
-  auto request = Request();
-  if (auto const rc = request.prepare(url); !rc) {
-    return std::unexpected(rc.error());
-  }
-
-  auto response = request.perform();
+/// Download file. Return error or path where content stored
+std::expected<std::filesystem::path, std::system_error> downloadFile(std::string const& url) noexcept {
+  auto response = walng::net::download(url);
   if (!response) {
     return std::unexpected(response.error());
   }
 
-  auto cachePath = getCachePath();
+  if (response->code != 200) {
+    return std::unexpected(std::error_code(ENOENT, std::system_category()));
+  }
+
+  auto cachePath = walng::getCachePath();
   if (!cachePath.has_value()) {
     return std::unexpected(cachePath.error());
   }
+
   auto const themesPath = cachePath.value() / "themes";
   std::error_code ec;
   create_directories(themesPath, ec);
   if (ec) {
-    return std::unexpected(std::system_error(ec, "can't create themes cache dir"));
+    return std::unexpected(ec);
   }
 
-  auto const themeFilePath = themesPath / *filename;
-  if (auto const rc = writeFile(themeFilePath, response->body()); !rc) {
+  auto themeFilePath = themesPath / response->filename;
+  if (auto const rc = writeFile(themeFilePath, response->content); !rc) {
     return std::unexpected(response.error());
   }
 
-  return themeFilePath;
+  return {std::move(themeFilePath)};
 }
 
 int main(int argc, char* argv[]) {
@@ -82,8 +77,7 @@ int main(int argc, char* argv[]) {
     // clang-format off
     options.add_options()
       ("config", "path to config file", cxxopts::value<std::string>(), "PATH")
-      ("theme-file", "path to theme file", cxxopts::value<std::string>(), "PATH")
-      ("theme-url", "url to theme file", cxxopts::value<std::string>(), "URL")
+      ("theme", "path or url to theme file", cxxopts::value<std::string>(), "PATH or URL")
       ("help", "prints the help and exit")
       ("version", "prints the version and exit")
     ;
@@ -107,26 +101,24 @@ int main(int argc, char* argv[]) {
       }
       auto configPath = walng::getConfigPath();
       if (!configPath.has_value()) {
-        throw configPath.error();
+        throw std::system_error(configPath.error());
       }
       return configPath.value() / "config.yaml";
     }();
 
-    if (result.count("theme-file") > 0) {
-      if (result.count("theme-url") > 0) {
-        throw std::runtime_error("argument `--theme-file` and `--theme-url` can't be set simultaneously");
+    if (result.count("theme") == 0) {
+      throw std::runtime_error("argument `--theme` should be set");
+    }
+    auto const& theme = result["theme"].as<std::string>();
+
+    if (theme.starts_with("http://") || theme.starts_with("https://")) {
+      if (auto rc = downloadFile(theme); rc) {
+        walng::generate(configPath, *rc);
+      } else {
+        throw std::system_error(rc.error());
       }
-      std::filesystem::path const themePath = result["theme-file"].as<std::string>();
-      walng::generate(configPath, themePath);
-    } else if (result.count("theme-url") > 0) {
-      std::string const& themeUrl = result["theme-url"].as<std::string>();
-      auto const downloadResult = downloadFileOrGetFromCache(themeUrl);
-      if (!downloadResult) {
-        throw downloadResult.error();
-      }
-      walng::generate(configPath, downloadResult.value());
     } else {
-      throw std::runtime_error("argument `--theme-file` or `--theme-url` should be set");
+      walng::generate(configPath, theme);
     }
 
   } catch (std::exception const& e) {
