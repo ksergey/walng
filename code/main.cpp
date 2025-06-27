@@ -8,24 +8,12 @@
 
 #include <cxxopts.hpp>
 
-#include "Request.h"
 #include "generate.h"
 #include "net/download.h"
 #include "utils.h"
 #include "version.h"
 
-std::expected<std::filesystem::path, std::system_error> extractFileNameFromUrl(std::string const& url) noexcept {
-  return ::walng::curl::UrlHandle::create()
-      .and_then([&](auto&& handle) {
-        return handle.setPart(CURLUPART_URL, url).and_then([&] {
-          return handle.getPart(CURLUPART_PATH);
-        });
-      })
-      .transform([](::walng::curl::UrlPart part) {
-        return std::filesystem::path(part.c_str()).filename();
-      });
-}
-
+/// Write content into file
 std::expected<void, std::error_code> writeFile(std::filesystem::path const& path, std::string_view content) noexcept {
   FILE* file = ::fopen(path.c_str(), "w");
   if (!file) {
