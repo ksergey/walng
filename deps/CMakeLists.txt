@@ -6,6 +6,7 @@ include(FetchContent)
 
 FetchContent_Declare(cxxopts
   URL https://github.com/jarro2783/cxxopts/archive/refs/tags/v3.2.0.tar.gz
+  SYSTEM
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(cxxopts)
@@ -16,6 +17,7 @@ FetchContent_MakeAvailable(cxxopts)
 
 FetchContent_Declare(yaml-cpp
   URL https://github.com/jbeder/yaml-cpp/archive/2f86d13775d119edbb69af52e5f566fd65c6953b.zip
+  SYSTEM
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(yaml-cpp)
@@ -26,6 +28,7 @@ FetchContent_MakeAvailable(yaml-cpp)
 
 FetchContent_Declare(json
   URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+  SYSTEM
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(json)
@@ -35,7 +38,7 @@ FetchContent_MakeAvailable(json)
 # -------------------------------------------------------------------------------------------------
 
 add_library(inja INTERFACE)
-target_include_directories(inja INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(inja SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(inja INTERFACE nlohmann_json::nlohmann_json)
 add_library(3rdparty::inja ALIAS inja)
 
@@ -63,6 +66,7 @@ set(BUILD_TESTING OFF)
 set(BUILD_EXAMPLES OFF)
 FetchContent_Declare(curl
   URL https://github.com/curl/curl/releases/download/curl-8_14_0/curl-8.14.0.tar.bz2
+  SYSTEM
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(curl)
@@ -73,7 +77,7 @@ FetchContent_MakeAvailable(curl)
 
 FetchContent_Declare(doctest
   URL https://github.com/doctest/doctest/archive/refs/tags/v2.4.12.tar.gz
-  EXCLUDE_FROM_ALL
+  SYSTEM
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(doctest)

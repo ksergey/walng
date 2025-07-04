@@ -3,8 +3,8 @@ name: build-and-test
 on: [push]
 
 env:
-  CMAKE_VERSION: 3.29.2
-  NINJA_VERSION: 1.9.0
+  CMAKE_VERSION: 4.0.3
+  NINJA_VERSION: 1.13.1
 
 jobs:
   build:
@@ -15,7 +15,7 @@ jobs:
       matrix:
         build_type: [ 'Debug', 'Release' ]
         os: [ 'ubuntu-24.04' ]
-        compiler: [ 'gcc-14', 'clang-19', 'clang-20' ]
+        compiler: [ 'gcc-14', 'clang-20' ]
 
     steps:
       - uses: actions/checkout@v4
@@ -61,18 +61,6 @@ jobs:
           sudo apt install -y g++-14 gcc-14
           echo "CC=gcc-14" >> $GITHUB_ENV
           echo "CXX=g++-14" >> $GITHUB_ENV
-
-      - name: install clang-19
-        id: install_clang_19
-        if: matrix.compiler == 'clang-19'
-        shell: bash
-        working-directory: ${{ env.HOME }}
-        run: |
-          curl -O -L https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          sudo ./llvm.sh 19
-          echo "CC=clang-19" >> $GITHUB_ENV
-          echo "CXX=clang++-19" >> $GITHUB_ENV
 
       - name: install clang-20
         id: install_clang_20
