@@ -1,6 +1,8 @@
+file(GLOB_RECURSE TargetModules "${CMAKE_CURRENT_SOURCE_DIR}/*.cppm")
+file(GLOB_RECURSE TargetSources "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+
 add_executable(${TargetName})
-target_compile_features(${TargetName}
-  PRIVATE cxx_std_23)
+target_compile_features(${TargetName} PRIVATE cxx_std_23)
 set_target_properties(${TargetName}
   PROPERTIES
     CXX_STANDARD_REQUIRED ON
@@ -16,18 +18,21 @@ target_compile_definitions(${TargetName}
 target_link_libraries(${TargetName}
   PRIVATE cxxopts::cxxopts yaml-cpp::yaml-cpp 3rdparty::inja CURL::libcurl_static)
 
-file(GLOB_RECURSE Sources "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-file(GLOB_RECURSE Headers "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
-
-CMakeUtilsAddTestsFromSourceList(Sources
+CMakeUtilsAddTestsFromSourceList(TargetSources
   PREFIX ${TargetName}
   COMPILE_FEATURES cxx_std_23
   COMPILE_OPTIONS -Wall -Wextra -g
   LINK_LIBS doctest::doctest_with_main CURL::libcurl_static)
 
-CMakeUtilsExcludeTestsFromSourceList(Sources)
+CMakeUtilsExcludeTestsFromSourceList(TargetSources)
 
-target_sources(${TargetName} PUBLIC ${Headers} ${Sources})
+target_sources(${TargetName}
+  PRIVATE
+    ${TargetSources}
+  PRIVATE
+    FILE_SET CXX_MODULES FILES
+    ${TargetModules}
+)
 
 file(COPY config.yaml DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
