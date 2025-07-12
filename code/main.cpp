@@ -5,58 +5,15 @@
 #include <expected>
 #include <filesystem>
 #include <print>
+#include <ranges>
 
 #include <cxxopts.hpp>
+#include <nlohmann/json.hpp>
 
-#include "generate.h"
-#include "net/download.h"
-#include "utils.h"
-#include "version.h"
-
-/// Write content into file
-std::expected<void, std::error_code> writeFile(std::filesystem::path const& path, std::string_view content) noexcept {
-  FILE* file = ::fopen(path.c_str(), "w");
-  if (!file) {
-    return std::unexpected(std::error_code(errno, std::system_category()));
-  }
-
-  // TODO: check result
-  ::fwrite(content.data(), content.size(), 1, file);
-  ::fclose(file);
-
-  return {};
-}
-
-/// Download file. Return error or path where content stored
-std::expected<std::filesystem::path, std::system_error> downloadFile(std::string const& url) noexcept {
-  auto response = walng::net::download(url);
-  if (!response) {
-    return std::unexpected(response.error());
-  }
-
-  if (response->code != 200) {
-    return std::unexpected(std::error_code(ENOENT, std::system_category()));
-  }
-
-  auto cachePath = walng::getCachePath();
-  if (!cachePath.has_value()) {
-    return std::unexpected(cachePath.error());
-  }
-
-  auto const themesPath = cachePath.value() / "themes";
-  std::error_code ec;
-  create_directories(themesPath, ec);
-  if (ec) {
-    return std::unexpected(ec);
-  }
-
-  auto themeFilePath = themesPath / response->filename;
-  if (auto const rc = writeFile(themeFilePath, response->content); !rc) {
-    return std::unexpected(response.error());
-  }
-
-  return {std::move(themeFilePath)};
-}
+import walng.download;
+import walng.color;
+import walng.version;
+import walng.basexx_theme;
 
 int main(int argc, char* argv[]) {
   try {
@@ -77,40 +34,52 @@ int main(int argc, char* argv[]) {
       std::print(stdout, "{}\n", options.help());
       return EXIT_FAILURE;
     }
-
     if (result.count("version")) {
       std::print(stdout, "walng {}\n", walng::version);
       return EXIT_FAILURE;
     }
 
-    std::filesystem::path const configPath = [&] {
-      if (result.count("config")) {
-        return std::filesystem::path(result["config"].as<std::string>());
-      }
-      auto configPath = walng::getConfigPath();
-      if (!configPath.has_value()) {
-        throw std::system_error(configPath.error());
-      }
-      return configPath.value() / "config.yaml";
-    }();
-
-    if (result.count("theme") == 0) {
-      throw std::runtime_error("argument `--theme` should be set");
+    auto download_result = walng::download(
+        "https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/spec-0.11/base16/black-metal-venom.yaml");
+    if (!download_result) {
+      std::print(stderr, "can't download theme: {}\n", download_result.error());
+      return EXIT_FAILURE;
     }
-    auto const& theme = result["theme"].as<std::string>();
 
-    if (theme.starts_with("http://") || theme.starts_with("https://")) {
-      if (auto rc = downloadFile(theme); rc) {
-        walng::generate(configPath, *rc);
-      } else {
-        throw std::system_error(rc.error());
-      }
-    } else {
-      walng::generate(configPath, theme);
+    auto const& response = *download_result;
+    if (response.response_code != 200) {
+      std::print(stderr, "download theme error: response_code {}\n", response.response_code);
+      return EXIT_FAILURE;
+    }
+    // if (response.content_type != "application/json") {
+    //   std::print(stderr, "download theme error: content type \"{}\" instead of \"application/json\"\n",
+    //       response.content_type.value_or("null"));
+    //   return EXIT_FAILURE;
+    // }
+
+    if (!response.content) {
+      std::print(stderr, "download theme error: no content\n");
+      return EXIT_FAILURE;
+    }
+    auto parse_result = walng::basexx_theme_parse_from_yaml_content(*response.content);
+    if (!parse_result) {
+      std::print(stderr, "theme parse error: {}\n", parse_result.error());
+      return EXIT_FAILURE;
+    }
+
+    auto const& theme = *parse_result;
+    std::print(stdout, "theme successful loaded\n");
+    std::print(stdout, "  name: \"{}\"\n", theme.name);
+    std::print(stdout, "  author: \"{}\"\n", theme.author);
+    std::print(stdout, "  variant: \"{}\"\n", theme.variant);
+    std::print(stdout, "  system: \"{}\"\n", theme.system);
+    std::print(stdout, "  palette:\n");
+    for (auto const& [index, color] : theme.palette | std::ranges::views::enumerate) {
+      std::print(stdout, "    base{:02X}: \"#{}\"\n", index, color.as_hex_str().c_str());
     }
 
   } catch (std::exception const& e) {
-    std::print(stderr, "Error: {}\n", e.what());
+    std::print(stderr, "Critical: {}\n", e.what());
     return EXIT_FAILURE;
   }
 

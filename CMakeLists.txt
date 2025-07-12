@@ -1,8 +1,6 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.31.6 FATAL_ERROR)
 
-set(VersionString "0.0.5")
-
-project(walng CXX)
+project(walng LANGUAGES CXX VERSION 0.0.7)
 
 include(cmake/CMakeUtils.cmake)
 
@@ -11,8 +9,6 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 add_subdirectory(deps EXCLUDE_FROM_ALL)
-
-set(TargetName walng)
 
 enable_testing()
 
