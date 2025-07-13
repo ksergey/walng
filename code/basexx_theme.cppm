@@ -14,7 +14,7 @@ export module walng.basexx_theme;
 
 namespace walng {
 
-struct basexx_theme {
+export struct basexx_theme {
   /// theme name
   std::string name;
   /// theme author
