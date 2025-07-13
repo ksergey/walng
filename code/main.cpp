@@ -10,10 +10,12 @@
 #include <cxxopts.hpp>
 #include <nlohmann/json.hpp>
 
-import walng.download;
-import walng.color;
-import walng.version;
 import walng.basexx_theme;
+import walng.color;
+import walng.config;
+import walng.download;
+import walng.utils;
+import walng.version;
 
 int main(int argc, char* argv[]) {
   try {
@@ -39,16 +41,35 @@ int main(int argc, char* argv[]) {
       return EXIT_FAILURE;
     }
 
+    std::filesystem::path config_path;
+    if (result.count("config")) {
+      config_path = result["config"].as<std::string>();
+    } else {
+      auto default_config_path = walng::get_config_path();
+      if (!default_config_path) {
+        std::print(stderr, "failed to get default config file path ({})\n", default_config_path.error());
+        return EXIT_FAILURE;
+      }
+      config_path = *default_config_path / "config.yaml";
+    }
+
+    auto config = walng::load_config_from_yaml_file(config_path);
+    if (!config) {
+      std::print(stderr, "failed to load config file '{}' ({})\n", config_path.c_str(), config.error());
+      return EXIT_FAILURE;
+    }
+    std::print("CONFIG: {}\n", config_path.string());
+
     auto download_result = walng::download(
         "https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/spec-0.11/base16/black-metal-venom.yaml");
     if (!download_result) {
-      std::print(stderr, "can't download theme: {}\n", download_result.error());
+      std::print(stderr, "can't download theme ({})\n", download_result.error());
       return EXIT_FAILURE;
     }
 
     auto const& response = *download_result;
     if (response.response_code != 200) {
-      std::print(stderr, "download theme error: response_code {}\n", response.response_code);
+      std::print(stderr, "download theme error (response_code {})\n", response.response_code);
       return EXIT_FAILURE;
     }
     // if (response.content_type != "application/json") {
@@ -58,12 +79,12 @@ int main(int argc, char* argv[]) {
     // }
 
     if (!response.content) {
-      std::print(stderr, "download theme error: no content\n");
+      std::print(stderr, "download theme error (no content)\n");
       return EXIT_FAILURE;
     }
     auto parse_result = walng::basexx_theme_parse_from_yaml_content(*response.content);
     if (!parse_result) {
-      std::print(stderr, "theme parse error: {}\n", parse_result.error());
+      std::print(stderr, "theme parse error ({})\n", parse_result.error());
       return EXIT_FAILURE;
     }
 

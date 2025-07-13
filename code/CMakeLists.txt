@@ -37,3 +37,5 @@ target_sources(${TargetName}
     FILE_SET CXX_MODULES FILES
     ${TargetModules}
 )
+
+file(COPY config.yaml DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

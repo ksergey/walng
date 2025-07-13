@@ -19,10 +19,10 @@ struct download_response {
   std::optional<std::string> content;
 };
 
-auto download(char const* url, std::optional<std::chrono::milliseconds> timeout = std::nullopt)
+[[nodiscard]] auto download(char const* url, std::optional<std::chrono::milliseconds> timeout = std::nullopt)
     -> std::expected<download_response, std::string>;
 
-auto download(std::string const& url, std::optional<std::chrono::milliseconds> timeout = std::nullopt)
+[[nodiscard]] auto download(std::string const& url, std::optional<std::chrono::milliseconds> timeout = std::nullopt)
     -> std::expected<download_response, std::string> {
   return download(url.c_str(), timeout);
 }

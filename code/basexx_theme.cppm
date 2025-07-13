@@ -28,11 +28,11 @@ struct basexx_theme {
 };
 
 /// parse theme from yaml content
-export auto basexx_theme_parse_from_yaml_content(std::string const& content)
+export [[nodiscard]] auto basexx_theme_parse_from_yaml_content(std::string const& content)
     -> std::expected<basexx_theme, std::string>;
 
 /// parse theme from file with yaml content
-export auto basexx_theme_parse_from_yaml_file(std::filesystem::path const& path)
+export [[nodiscard]] auto basexx_theme_parse_from_yaml_file(std::filesystem::path const& path)
     -> std::expected<basexx_theme, std::string>;
 
 } // namespace walng
