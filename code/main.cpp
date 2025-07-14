@@ -154,7 +154,6 @@ int main(int argc, char* argv[]) {
       }
       config_path = *default_config_path / "config.yaml";
     }
-    std::print("CONFIG: {}\n", config_path.string());
 
     auto config_load_result = walng::load_config_from_yaml_file(config_path);
     if (!config_load_result) {
@@ -162,35 +161,46 @@ int main(int argc, char* argv[]) {
       return EXIT_FAILURE;
     }
 
-    auto download_result = walng::download(
-        "https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/spec-0.11/base16/black-metal-venom.yaml");
-    if (!download_result) {
-      std::print(stderr, "can't download theme ({})\n", download_result.error());
+    if (!result.count("theme")) {
+      std::print(stderr, "argument `--theme` is mandatory\n");
       return EXIT_FAILURE;
+    }
+    auto const& theme_file_or_url = result["theme"].as<std::string>();
+
+    walng::basexx_theme theme;
+
+    if (std::filesystem::exists(theme_file_or_url)) {
+      // load from file
+      auto theme_parse_result = walng::basexx_theme_parse_from_yaml_file(theme_file_or_url);
+      if (!theme_parse_result) {
+        std::print(stderr, "failed to load theme from file '{}' ([])\n", theme_file_or_url, theme_parse_result.error());
+        return EXIT_FAILURE;
+      }
+      theme = std::move(theme_parse_result.value());
+    } else {
+      auto download_result = walng::download(theme_file_or_url);
+      if (!download_result) {
+        std::print(stderr, "can't download theme ({})\n", download_result.error());
+        return EXIT_FAILURE;
+      }
+      auto const& response = *download_result;
+      if (response.response_code != 200) {
+        std::print(stderr, "download theme error (response_code {})\n", response.response_code);
+        return EXIT_FAILURE;
+      }
+      if (!response.content) {
+        std::print(stderr, "download theme error (no content)\n");
+        return EXIT_FAILURE;
+      }
+      auto theme_parse_result = walng::basexx_theme_parse_from_yaml_content(*response.content);
+      if (!theme_parse_result) {
+        std::print(stderr, "theme parse error ({})\n", theme_parse_result.error());
+        return EXIT_FAILURE;
+      }
+      theme = std::move(theme_parse_result.value());
     }
 
-    auto const& response = *download_result;
-    if (response.response_code != 200) {
-      std::print(stderr, "download theme error (response_code {})\n", response.response_code);
-      return EXIT_FAILURE;
-    }
-    // if (response.content_type != "application/json") {
-    //   std::print(stderr, "download theme error: content type \"{}\" instead of \"application/json\"\n",
-    //       response.content_type.value_or("null"));
-    //   return EXIT_FAILURE;
-    // }
-
-    if (!response.content) {
-      std::print(stderr, "download theme error (no content)\n");
-      return EXIT_FAILURE;
-    }
-    auto theme_parse_result = walng::basexx_theme_parse_from_yaml_content(*response.content);
-    if (!theme_parse_result) {
-      std::print(stderr, "theme parse error ({})\n", theme_parse_result.error());
-      return EXIT_FAILURE;
-    }
-
-    auto const& theme = *theme_parse_result;
+#if 0
     std::print(stdout, "theme successful loaded\n");
     std::print(stdout, "  name: \"{}\"\n", theme.name);
     std::print(stdout, "  author: \"{}\"\n", theme.author);
@@ -200,10 +210,11 @@ int main(int argc, char* argv[]) {
     for (auto const& [index, color] : theme.palette | std::ranges::views::enumerate) {
       std::print(stdout, "    base{:02X}: \"#{}\"\n", index, color.as_hex_str().c_str());
     }
+#endif
 
-    // if (auto result = process(config_load_result.value(), theme_parse_result.value()); !result) {
-    //   std::print(stderr, "failed to process ({})\n", result.error());
-    // }
+    if (auto result = process(config_load_result.value(), theme); !result) {
+      std::print(stderr, "failed to process ({})\n", result.error());
+    }
 
   } catch (std::exception const& e) {
     std::print(stderr, "Critical: {}\n", e.what());
