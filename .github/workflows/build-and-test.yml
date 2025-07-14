@@ -15,7 +15,7 @@ jobs:
       matrix:
         build_type: [ 'Debug', 'Release' ]
         os: [ 'ubuntu-24.04' ]
-        compiler: [ 'gcc-14', 'gcc-16', 'clang-19', 'clang-20' ]
+        compiler: [ 'gcc-14', 'gcc-15', 'clang-19', 'clang-20' ]
 
     steps:
       - uses: actions/checkout@v4
