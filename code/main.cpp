@@ -1,5 +1,5 @@
 // Copyright (c) Sergey Kovalevich <inndie@gmail.com>
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0
 
 #include <algorithm>
 #include <cerrno>
