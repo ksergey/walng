@@ -39,3 +39,7 @@ target_sources(${TargetName}
 )
 
 file(COPY config.yaml DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+
+include(GNUInstallDirs)
+install(TARGETS ${TargetName} DESTINATION ${CMAKE_INSTALL_BINDIR})
