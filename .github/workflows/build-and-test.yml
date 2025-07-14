@@ -15,7 +15,7 @@ jobs:
       matrix:
         build_type: [ 'Debug', 'Release' ]
         os: [ 'ubuntu-24.04' ]
-        compiler: [ 'gcc-14', 'clang-19', 'clang-20' ]
+        compiler: [ 'gcc-14', 'gcc-16', 'clang-19', 'clang-20' ]
 
     steps:
       - uses: actions/checkout@v4
@@ -61,6 +61,18 @@ jobs:
           sudo apt install -y g++-14 gcc-14
           echo "CC=gcc-14" >> $GITHUB_ENV
           echo "CXX=g++-14" >> $GITHUB_ENV
+
+      - name: install gcc-15
+        id: install_gcc_15
+        if: matrix.compiler == 'gcc-15'
+        shell: bash
+        working-directory: ${{ env.HOME }}
+        run: |
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt update
+          sudo apt install -y g++-15 gcc-15
+          echo "CC=gcc-15" >> $GITHUB_ENV
+          echo "CXX=g++-15" >> $GITHUB_ENV
 
       - name: install clang-19
         id: install_clang_19
