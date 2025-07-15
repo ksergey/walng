@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.31.6 FATAL_ERROR)
 
-project(walng LANGUAGES CXX VERSION 0.0.9)
+project(walng LANGUAGES CXX VERSION 0.1.0)
 
 include(cmake/CMakeUtils.cmake)
 

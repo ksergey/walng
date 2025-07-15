@@ -42,6 +42,33 @@ auto get_inja_env() -> inja::Environment {
     return std::format("{}, {}, {}", rgb.r, rgb.g, rgb.b);
   });
 
+  result.add_callback("r", 1, [](inja::Arguments const& args) -> std::string {
+    auto color_result = walng::parse_color_from_hex_str(args.at(0)->get<std::string>());
+    if (!color_result) {
+      throw std::runtime_error(std::string(color_result.error()));
+    }
+    auto rgb = color_result->as_rgb();
+    return std::format("{}", rgb.r);
+  });
+
+  result.add_callback("g", 1, [](inja::Arguments const& args) -> std::string {
+    auto color_result = walng::parse_color_from_hex_str(args.at(0)->get<std::string>());
+    if (!color_result) {
+      throw std::runtime_error(std::string(color_result.error()));
+    }
+    auto rgb = color_result->as_rgb();
+    return std::format("{}", rgb.g);
+  });
+
+  result.add_callback("b", 1, [](inja::Arguments const& args) -> std::string {
+    auto color_result = walng::parse_color_from_hex_str(args.at(0)->get<std::string>());
+    if (!color_result) {
+      throw std::runtime_error(std::string(color_result.error()));
+    }
+    auto rgb = color_result->as_rgb();
+    return std::format("{}", rgb.b);
+  });
+
   return result;
 }
 
