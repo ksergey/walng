@@ -37,10 +37,14 @@ FetchContent_MakeAvailable(json)
 # inja
 # -------------------------------------------------------------------------------------------------
 
-add_library(inja INTERFACE)
-target_include_directories(inja SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(inja INTERFACE nlohmann_json::nlohmann_json)
-add_library(3rdparty::inja ALIAS inja)
+set(INJA_USE_EMBEDDED_JSON OFF)
+set(BUILD_TESTING OFF)
+FetchContent_Declare(inja
+  URL https://github.com/pantor/inja/archive/refs/tags/v3.5.0.tar.gz
+  SYSTEM
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
+)
+FetchContent_MakeAvailable(inja)
 
 # -------------------------------------------------------------------------------------------------
 # curl

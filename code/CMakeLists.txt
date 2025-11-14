@@ -20,7 +20,7 @@ set_target_properties(${TargetName}
 )
 target_link_libraries(${TargetName}
   PRIVATE
-    CURL::libcurl_static cxxopts::cxxopts yaml-cpp::yaml-cpp 3rdparty::inja
+    CURL::libcurl_static cxxopts::cxxopts yaml-cpp::yaml-cpp pantor::inja
 )
 
 CMakeUtilsAddTestsFromSourceList(TargetSources
